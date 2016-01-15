@@ -245,14 +245,18 @@ public class TupleDesc implements Serializable {
      * @return String describing this descriptor.
      */
     public String toString() {
-        // Since the tdItems should contain at least one entry per spec. 
-        String result = this.tdItems.get(0).toString();
-        for (int i = 1; i < tdItems.size(); i++) {
-            // Q: sure you want "fieldType[0](fieldName[0])" instead of "fieldName[0](fieldType[0])"?
-            // Not implemented as spec for now
-            result += ", " + this.tdItems.get(i).toString();
+        if (this.tdItems.size() > 0) {
+            // Since the tdItems should contain at least one entry per spec. 
+            String result = this.tdItems.get(0).toString();
+            for (int i = 1; i < tdItems.size(); i++) {
+                // Q: sure you want "fieldType[0](fieldName[0])" instead of "fieldName[0](fieldType[0])"?
+                // Not implemented as spec for now
+                result += ", " + this.tdItems.get(i).toString();
+            }
+            return result;
+        } else {
+            return "";
         }
-        return result;
     }
 
     private List<TDItem> tdItems;

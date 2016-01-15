@@ -17,13 +17,47 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Threadsafe
  */
 public class Catalog {
+    /**
+     * Table class that keeps the DbFile, table name, and pKeyField
+     */
+    public static class Table {
+        // Each table has a unique ID, in this implementation it's populated from the ID of the dbFile for that table
+        private DbFile dbFile;
+        private String name;
+        private String pKeyField;
+        private int tableId;
+
+        public Table(DbFile file, String name, String pKeyField) {
+            this.dbFile = file;
+            this.name = name;
+            this.pKeyField = pKeyField;
+            this.tableId = file.getId();
+        }
+
+        public String getTableName() {
+            return this.name;
+        }
+
+        public DbFile getDbFile() {
+            return this.dbFile;
+        }
+
+        public String getPrimaryKey() {
+            return this.pKeyField;
+        }
+
+        public int getId() {
+            return this.tableId;
+        }
+    }
 
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
     public Catalog() {
-        // some code goes here
+        tables = new ConcurrentHashMap<Integer, Table>();
+        tableNameIdMapping = new ConcurrentHashMap<String, Integer>();
     }
 
     /**
@@ -36,7 +70,12 @@ public class Catalog {
      * conflict exists, use the last table to be added as the table for a given name.
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-        // some code goes here
+        if (name != null) {
+            this.tables.put(file.getId(), new Table(file, name, pkeyField));
+            // TODO: test insertion of tables with the same name
+            this.tableNameIdMapping.put(name, file.getId());
+        }
+        return;
     }
 
     public void addTable(DbFile file, String name) {
@@ -59,8 +98,11 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public int getTableId(String name) throws NoSuchElementException {
-        // some code goes here
-        return 0;
+        if (name != null && this.tableNameIdMapping.containsKey(name)) {
+            return this.tableNameIdMapping.get(name);
+        } else {
+            throw new NoSuchElementException();
+        }
     }
 
     /**
@@ -70,8 +112,11 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        if (this.tables.containsKey(tableid)) {
+            return this.tables.get(tableid).getDbFile().getTupleDesc();
+        } else {
+            throw new NoSuchElementException();
+        }
     }
 
     /**
@@ -81,28 +126,40 @@ public class Catalog {
      *     function passed to addTable
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        if (this.tables.containsKey(tableid)) {
+            return this.tables.get(tableid).getDbFile();
+        } else {
+            throw new NoSuchElementException();
+        }
     }
 
-    public String getPrimaryKey(int tableid) {
-        // some code goes here
-        return null;
+    /**
+     * TODO: check on Updated interface for getPrimaryKey and getTableName; 
+     *   as we now make getPrimaryKey and getTableName throw NoSuchElementException
+     */
+    public String getPrimaryKey(int tableid) throws NoSuchElementException {
+        if (this.tables.containsKey(tableid)) {
+            return this.tables.get(tableid).getPrimaryKey();
+        } else {
+            throw new NoSuchElementException();
+        }
+    }
+
+    public String getTableName(int tableid) throws NoSuchElementException {
+        if (this.tables.containsKey(tableid)) {
+            return this.tables.get(tableid).getTableName();
+        } else {
+            throw new NoSuchElementException();
+        }
     }
 
     public Iterator<Integer> tableIdIterator() {
-        // some code goes here
-        return null;
-    }
-
-    public String getTableName(int id) {
-        // some code goes here
-        return null;
+        return this.tables.keySet().iterator();
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
-        // some code goes here
+
     }
     
     /**
@@ -159,5 +216,9 @@ public class Catalog {
             System.exit(0);
         }
     }
+
+    private ConcurrentHashMap<Integer, Table> tables;
+    // we have this mapping since table names are unique, and we want to refer to a table by both its name or its ID
+    private ConcurrentHashMap<String, Integer> tableNameIdMapping;
 }
 
