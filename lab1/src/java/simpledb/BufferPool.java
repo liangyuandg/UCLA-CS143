@@ -33,7 +33,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         this.numPages = numPages;
-        this.pages = new ConcurrentHashMap<Integer, Page>();
+        this.pages = new ConcurrentHashMap<PageId, Page>();
     }
     
     public static int getPageSize() {
@@ -62,14 +62,17 @@ public class BufferPool {
      */
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        Page page = this.pages.get(pid);
         // Permission is READ_ONLY or READ_WRITE, so shouldn't matter here
-        if (page != null) {
-            return page;
+        if (this.pages.containsKey(pid)) {
+            return this.pages.get(pid);
         } else {
-
+            // TODO: eviction not implemented anyway, so we don't call it here for project 1
+            // TODO: Possible exceptions? (Not explicitly creating HeapFile actually allowed us to use the interface DbFile)
+            Page page = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
+            this.pages.put(pid, page);
+            this.numPages++;
+            return page;
         }
-        return null;
     }
 
     /**
@@ -201,5 +204,5 @@ public class BufferPool {
     }
 
     private int numPages;
-    private ConcurrentHashMap<Integer, Page> pages;
+    private ConcurrentHashMap<PageId, Page> pages;
 }
