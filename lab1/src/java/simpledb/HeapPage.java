@@ -75,7 +75,7 @@ public class HeapPage implements Page {
      */
     private int getHeaderSize() {
         // getHeaderSize call be after this.numSlots is set; header is a bitmap representation of tuple slots in this page
-        return (int)Math.ceil(this.numSlots / 8);
+        return (int)Math.ceil(this.numSlots / 8F);
     }
     
     /** Return a view of this page before it was modified
@@ -286,7 +286,7 @@ public class HeapPage implements Page {
      * Returns true if associated slot on this page is filled.
      */
     public boolean isSlotUsed(int i) {
-        int loc = i / 8; 
+        int loc = i / 8;
         // it appears that (8 - (i % 8)) is not the expected shift; and bit 1 means used
         // header format would look like
         // ---------------------------------

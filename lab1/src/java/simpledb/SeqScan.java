@@ -28,7 +28,11 @@ public class SeqScan implements DbIterator {
      *            tableAlias.null, or null.null).
      */
     public SeqScan(TransactionId tid, int tableid, String tableAlias) {
-        // some code goes here
+        this.tableAlias = tableAlias;
+        this.tableId = tableid;
+        this.transactionId = tid;
+        this.catalog = Database.getCatalog();
+        this.dbIterator = this.catalog.getDatabaseFile(tableid).iterator(tid);
     }
 
     /**
@@ -37,7 +41,7 @@ public class SeqScan implements DbIterator {
      *       be the actual name of the table in the catalog of the database
      * */
     public String getTableName() {
-        return null;
+        return this.catalog.getTableName(this.tableId);
     }
     
     /**
@@ -45,8 +49,7 @@ public class SeqScan implements DbIterator {
      * */
     public String getAlias()
     {
-        // some code goes here
-        return null;
+        return this.tableAlias;
     }
 
     /**
@@ -70,7 +73,7 @@ public class SeqScan implements DbIterator {
     }
 
     public void open() throws DbException, TransactionAbortedException {
-        // some code goes here
+        this.dbIterator.open();
     }
 
     /**
@@ -83,27 +86,30 @@ public class SeqScan implements DbIterator {
      *         prefixed with the tableAlias string from the constructor.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        return this.catalog.getDatabaseFile(this.tableId).getTupleDesc();
     }
 
     public boolean hasNext() throws TransactionAbortedException, DbException {
-        // some code goes here
-        return false;
+        return this.dbIterator.hasNext();
     }
 
     public Tuple next() throws NoSuchElementException,
             TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        return this.dbIterator.next();
     }
 
     public void close() {
-        // some code goes here
+        this.dbIterator.close();
     }
 
     public void rewind() throws DbException, NoSuchElementException,
             TransactionAbortedException {
-        // some code goes here
+        this.dbIterator.rewind();
     }
+
+    private String tableAlias;
+    private int tableId;
+    private TransactionId transactionId;
+    private Catalog catalog;
+    private DbFileIterator dbIterator;
 }

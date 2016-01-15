@@ -51,6 +51,8 @@ public class HeapFile implements DbFile {
                     // TODO: Check if cast is necessary
                     HeapPage heapPage = (HeapPage) bufferPool.getPage(transactionId, pageId, Permissions.READ_ONLY);
                     if (heapPage.iterator().hasNext()) {
+                        // TODO: check if setting iterator here would cause issues?
+                        this.tupleIterator = heapPage.iterator();
                         return true;
                     } else {
                         this.currentPageNum++;
@@ -150,11 +152,13 @@ public class HeapFile implements DbFile {
     // TODO: check if change on the interface regarding potential exceptions thrown is expected; for now process FileNotFoundException and IOException here
     public Page readPage(PageId pid) {
         int pageNo = pid.pageNumber();
-        byte[] pageData = new byte[this.pageSize];
         try {
             RandomAccessFile raf = new RandomAccessFile(this.file, "r");
             if (pageNo < numPages()) {
-                raf.read(pageData, pageNo * this.pageSize, this.pageSize);
+                byte[] pageData = new byte[this.pageSize];
+                // Check: the offset param in read's not doing what I supposed it would do
+                raf.seek(pageNo * this.pageSize);
+                raf.read(pageData, 0, this.pageSize);
                 // A cast exception would be thrown if pid cannot be converted to HeapPageId
                 HeapPage heapPage = new HeapPage((HeapPageId)pid, pageData);
                 return heapPage;
