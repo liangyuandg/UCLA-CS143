@@ -276,16 +276,23 @@ public class HeapPage implements Page {
      * Returns the number of empty slots on this page.
      */
     public int getNumEmptySlots() {
-        // some code goes here
-        return 0;
+        // We can't just count the number of 0s in the header bytes, since the number of slots may not be a factor of 8
+        // Instead we count the number of 1s, and do numSlots - number of 1s
+        BitSet bitset = BitSet.valueOf(this.header);  // java.util.BitSet
+        return this.numSlots - bitset.cardinality();
     }
 
     /**
      * Returns true if associated slot on this page is filled.
      */
     public boolean isSlotUsed(int i) {
-        // some code goes here
-        return false;
+        int loc = i / 8; 
+        // it appears that (8 - (i % 8)) is not the expected shift; and bit 1 means used
+        // header format would look like
+        // ---------------------------------
+        // |    8    | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
+        // | is used | ....
+        return ((this.header[loc] >> (i % 8)) & 1) == 1 ? true : false;
     }
 
     /**
@@ -301,8 +308,14 @@ public class HeapPage implements Page {
      * (note that this iterator shouldn't return tuples in empty slots!)
      */
     public Iterator<Tuple> iterator() {
-        // some code goes here
-        return null;
+        List<Tuple> usedTuples = new ArrayList<Tuple>();
+        for (int i = 0; i < this.tuples.length; i++) {
+            if (isSlotUsed(i)) {
+                usedTuples.add(this.tuples[i]);
+            }
+        }
+        // TODO: check if null causes problems here
+        return usedTuples.listIterator();
     }
 
 }
