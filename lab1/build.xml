@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="simpledb" default="dist" basedir=".">
+    <!-- <echo>Java Version via Ant: ${ant.java.version}</echo> -->
     <property name="src" location="src"/>
     <property name="testd" location="test"/>
 
