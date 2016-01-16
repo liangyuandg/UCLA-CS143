@@ -23,6 +23,9 @@ public class CatalogTest extends SimpleDbTestBase {
 		nameThisTestRun = SystemTestUtil.getUUID();
         Database.getCatalog().addTable(new SkeletonFile(-1, Utility.getTupleDesc(2)), nameThisTestRun);
         Database.getCatalog().addTable(new SkeletonFile(-2, Utility.getTupleDesc(2)), name);
+
+        // Test of adding table with the same name
+        Database.getCatalog().addTable(new SkeletonFile(-3, Utility.getTupleDesc(3)), name);
     }
 
     /**
@@ -39,7 +42,7 @@ public class CatalogTest extends SimpleDbTestBase {
      * Unit test for Catalog.getTableId()
      */
     @Test public void getTableId() {
-        assertEquals(-2, Database.getCatalog().getTableId(name));
+        assertEquals(-3, Database.getCatalog().getTableId(name));
         assertEquals(-1, Database.getCatalog().getTableId(nameThisTestRun));
         
         try {

@@ -159,7 +159,9 @@ public class Catalog {
     
     /** Delete all tables from the catalog */
     public void clear() {
-
+        // Clear merely reinstantiates the mappings
+        this.tables = new ConcurrentHashMap<Integer, Table>();
+        this.tableNameIdMapping = new ConcurrentHashMap<String, Integer>();
     }
     
     /**
