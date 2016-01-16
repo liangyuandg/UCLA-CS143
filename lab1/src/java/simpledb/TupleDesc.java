@@ -58,7 +58,7 @@ public class TupleDesc implements Serializable {
      */
     public TupleDesc(Type[] typeAr, String[] fieldAr) {
         this.tdItems = new ArrayList<TDItem>();
-        // when Type list length is 0, for now we just return, should write to log or throw an exception
+        // Check: when Type list length is 0, for now we just return, should write to log or throw an exception
         // throwing an exception would essentially change the function signature.
         if (typeAr != null && typeAr.length > 0) {
             // here we allow different lengths in typeAr and fieldAr

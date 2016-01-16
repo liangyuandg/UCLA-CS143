@@ -24,7 +24,6 @@ public class Tuple implements Serializable {
             this.tupleDesc = td;
             // this would actually cause problems when setting field, since it confuses capacity with size of a list
             //this.fields = new ArrayList<Field>(this.tupleDesc.numFields());
-            // what happens if we call toString without setting all the fields?
             this.fields = Arrays.asList(new Field[10]);
         }
     }
@@ -95,9 +94,16 @@ public class Tuple implements Serializable {
     public String toString() {
         // tupleDesc can't be empty, so tuple shouldn't be, either.
         if (this.fields.size() > 0) {
-            String result = this.getField(0).toString();
+            String result = "";
+            // Check: in this toString, if the field is not specified, we will leave its space blank
+            if (this.getField(0) != null) {
+                result = this.getField(0).toString();
+            }
             for (int i = 1; i < this.fields.size(); i++) {
-                result += "\t" + this.getField(i).toString();
+                result += "\t";
+                if (this.getField(i) != null) {
+                    result += this.getField(i).toString();
+                }
             }
             result += "\n";
             return result;
