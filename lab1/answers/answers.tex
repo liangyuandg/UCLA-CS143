@@ -74,4 +74,6 @@ Other than the functions mentioned as ``not needed for lab 1'', the implementati
 
 The project took about 24 hours in total. Getting started with simpledb, learning what's implemented and what's needed, as well as the test framework took a considerable amount of time. The actual implementation is rather clear once the relationship between each module, and the utilities of each class are figured out. Testing took a large amount of time, since issues such as NullPointerException and ClassCastException handling was not done correctly in the initial implementation.
 
+One interesting note while testing: the author created his own table file, and tried the sample scan code (src folder IteratorQueryTest.java) on the custom dat file, however the final line is always missing. The problem is resolved using hexdump on the dat file, and finding that the last bit in page header is not set as expected. The problem ended up being the source txt file (copied directly from the example one in html) has one white space before a line break and after the last integer, which causes the last integer and the line it belongs to get omitted during conversion.
+
 \end{document}

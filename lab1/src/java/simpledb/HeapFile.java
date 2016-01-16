@@ -173,9 +173,9 @@ public class HeapFile implements DbFile {
                 throw new IllegalArgumentException();
             }
         } catch (FileNotFoundException e) {
-
+            e.printStackTrace();
         } catch (IOException e) {
-
+            e.printStackTrace();
         }
         return null;
     }
