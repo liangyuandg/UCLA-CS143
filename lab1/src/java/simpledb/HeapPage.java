@@ -314,7 +314,6 @@ public class HeapPage implements Page {
                 usedTuples.add(this.tuples[i]);
             }
         }
-        // TODO: check if null causes problems here
         return usedTuples.listIterator();
     }
 

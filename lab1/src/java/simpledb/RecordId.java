@@ -68,7 +68,6 @@ public class RecordId implements Serializable {
      */
     @Override
     public int hashCode() {
-        // TODO: test this implementation
         return Objects.hash(this.pageId, this.tupleId);
     }
 

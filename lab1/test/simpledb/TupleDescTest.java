@@ -151,6 +151,9 @@ public class TupleDescTest extends SimpleDbTestBase {
         TupleDesc singleInt2 = new TupleDesc(new Type[]{Type.INT_TYPE});
         TupleDesc intString = new TupleDesc(new Type[]{Type.INT_TYPE, Type.STRING_TYPE});
 
+        //assertEquals(singleInt.hashCode(), singleInt2.hashCode());
+        //assertFalse(singleInt2.hashCode() == intString.hashCode());
+
         // .equals() with null should return false
         assertFalse(singleInt.equals(null));
 

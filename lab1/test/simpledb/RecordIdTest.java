@@ -60,6 +60,7 @@ public class RecordIdTest extends SimpleDbTestBase {
      */
     @Test public void hCode() {
     	assertEquals(hrid.hashCode(), hrid2.hashCode());
+        //assertFalse(hrid2.hashCode() == hrid3.hashCode());
     }
 
     /**
