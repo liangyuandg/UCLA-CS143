@@ -48,7 +48,7 @@ Another minor decision is whether \textit{HeapFile.readPage} should be throw \te
 
 A final minor decision is the implementation of \textit{HeapFileIterator} class which implements \textit{DbFileIterator} interface. Such an implementation class is needed, as we cannot instantiate an interface when accessing \textit{HeapFile.iterator()}, so instead we implement the interface, and hook it up with \textit{BufferPool.getPage()} to provide the functions it needs.
 
-\section{Changes you made to the API}
+\section{Changes made to the API}
 
 Changes to the API were minimal in this project, with the only ones being adding \textit{NoSuchElementException} to the following function signatures. (Java uses a type system enhanced with explicit exception declaration, so adding types of Exception should count as changes to the API)
 
