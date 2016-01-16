@@ -28,9 +28,13 @@ public class HeapFile implements DbFile {
             // note the static method for getting one buffer pool
             BufferPool bufferPool = Database.getBufferPool();
             HeapPageId pageId = new HeapPageId(this.heapFile.getId(), this.currentPageNum);
-            // TODO: Check if cast is necessary
-            HeapPage heapPage = (HeapPage) bufferPool.getPage(transactionId, pageId, Permissions.READ_ONLY);
-            this.tupleIterator = heapPage.iterator();
+
+            try {
+                HeapPage heapPage = (HeapPage) bufferPool.getPage(transactionId, pageId, Permissions.READ_ONLY);
+                this.tupleIterator = heapPage.iterator();
+            } catch (ClassCastException e) {
+                // in case the indicated pageId does not correspond with a heap page
+            }
         }
 
         /** @return true if there are more tuples available. */
@@ -48,14 +52,17 @@ public class HeapFile implements DbFile {
                 // hasNext, a peek function, would cause bufferPool to load; in case that the next page is empty
                 while (this.currentPageNum < this.heapFile.numPages()) {
                     HeapPageId pageId = new HeapPageId(this.heapFile.getId(), this.currentPageNum);
-                    // TODO: Check if cast is necessary
-                    HeapPage heapPage = (HeapPage) bufferPool.getPage(transactionId, pageId, Permissions.READ_ONLY);
-                    if (heapPage.iterator().hasNext()) {
-                        // TODO: check if setting iterator here would cause issues?
-                        this.tupleIterator = heapPage.iterator();
-                        return true;
-                    } else {
-                        this.currentPageNum++;
+                    try {
+                        HeapPage heapPage = (HeapPage) bufferPool.getPage(transactionId, pageId, Permissions.READ_ONLY);
+                        if (heapPage.iterator().hasNext()) {
+                            // Check: if setting iterator here would cause issues: iterator can be thought of as being the pseudohead of a linked list?
+                            this.tupleIterator = heapPage.iterator();
+                            return true;
+                        } else {
+                            this.currentPageNum++;
+                        }
+                    } catch (ClassCastException e) {
+                        // in case the indicated pageId does not correspond with a heap page
                     }
                 }
                 return false;
@@ -149,14 +156,14 @@ public class HeapFile implements DbFile {
     }
 
     // see DbFile.java for javadocs
-    // TODO: check if change on the interface regarding potential exceptions thrown is expected; for now process FileNotFoundException and IOException here
+    // Check: for now process FileNotFoundException and IOException are caught here, probably don't want them thrown to calling function
     public Page readPage(PageId pid) {
         int pageNo = pid.pageNumber();
         try {
             RandomAccessFile raf = new RandomAccessFile(this.file, "r");
             if (pageNo < numPages()) {
                 byte[] pageData = new byte[this.pageSize];
-                // Check: the offset param in read's not doing what I supposed it would do
+                // Check: the offset param in read's not doing what I supposed it would do; added seek call instead
                 raf.seek(pageNo * this.pageSize);
                 raf.read(pageData, 0, this.pageSize);
                 // A cast exception would be thrown if pid cannot be converted to HeapPageId

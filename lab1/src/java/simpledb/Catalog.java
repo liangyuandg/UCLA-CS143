@@ -72,7 +72,6 @@ public class Catalog {
     public void addTable(DbFile file, String name, String pkeyField) {
         if (name != null) {
             this.tables.put(file.getId(), new Table(file, name, pkeyField));
-            // TODO: test insertion of tables with the same name
             this.tableNameIdMapping.put(name, file.getId());
         }
         return;
@@ -134,7 +133,7 @@ public class Catalog {
     }
 
     /**
-     * TODO: check on Updated interface for getPrimaryKey and getTableName; 
+     * Check: Updated interface for getPrimaryKey and getTableName; 
      *   as we now make getPrimaryKey and getTableName throw NoSuchElementException
      */
     public String getPrimaryKey(int tableid) throws NoSuchElementException {

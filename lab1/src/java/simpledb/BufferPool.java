@@ -66,9 +66,10 @@ public class BufferPool {
         if (this.pages.containsKey(pid)) {
             return this.pages.get(pid);
         } else {
-            // TODO: eviction not implemented anyway, so we don't call it here for project 1
-            // TODO: Possible exceptions? (Not explicitly creating HeapFile actually allowed us to use the interface DbFile)
+            // Check: eviction not implemented anyway, so we don't call it here for project 1
+            // Check: possible exceptions, such as FileNotExist (when open) or IOException (when read) is caught by readPage
             Page page = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
+            // (Not explicitly creating HeapFile actually allowed us to use the interface DbFile)
             this.pages.put(pid, page);
             this.numPages++;
             return page;
