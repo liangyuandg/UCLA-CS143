@@ -1,0 +1,79 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{titling}
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=false,
+  % Defaults to true
+  % breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\setlength{\droptitle}{-10em}   % This is your set screw
+
+\title{CS 143: Summary of lab 1}
+\author{Zhehao Wang  404380075}
+\date{Jan 2015}
+\begin{document}
+
+\maketitle
+
+\section{Design decisions}
+
+Most of decisions in lab 1 are implementation decisions: mainly choosing data structures for members of certain classes.
+
+For example, in \textit{Catalog} we introduced the class \textit{Table} to hold the entries of \textit{tableId}, \textit{tableName}, \textit{dbFile}, and \textit{pKeyField}. \textit{Catalog} needs to store a series of tables, and for that we chose \textit{ConcurrentHashMap<int, Table>} which maps \textit{tableId} to the \textit{Table} entry. This is because \textit{tableId} is unique, and most of the access methods refer to values in the entry by the \textit{tableId}. \textit{HashMap} lookup would be faster than linear look up, and concurrent access could be a future concern. One method \textit{getTableId} gets the ID from \textit{tableName}, for this kind of access we created another mapping from table names to IDs.
+
+Similar decision exists for choosing the data structure to hold \textit{TDItems} in \textit{TupleDesc}; for that we choose an \textit{ArrayList}, since the way the collection of \textit{TDItems}'s used is most like a plain list. Here we don't go into detail about other similar choices.
+
+Another minor decision is whether \textit{HeapFile.readPage} should be throw \textit{IOException} and \textit{FileNotFoundException} as it reads from a \textit{RandomAccessFile}; we chose not to throw these exceptions and instead handle them within \textit{readPage} method, because throwing them would require many changes to the interface.
+
+A final minor decision is the implementation of \textit{HeapFileIterator} class which implements \textit{DbFileIterator} interface. Such an implementation class is needed, as we cannot instantiate an interface when accessing \textit{HeapFile.iterator()}, so instead we implement the interface, and hook it up with \textit{BufferPool.getPage()} to provide the functions it needs.
+
+\section{Changes made to the API}
+
+Changes to the API were minimal in this project, with the only ones being adding \textit{NoSuchElementException} to the following function signatures. (Java uses a type system enhanced with explicit exception declaration, so adding types of Exception should count as changes to the API)
+
+\begin{lstlisting}
+String Catalog.getPrimaryKey(int tableid) 
+String Catalog.getTableName(int tableid) 
+\end{lstlisting}
+As in the handin, these become
+\begin{lstlisting}
+String Catalog.getPrimaryKey(int tableid) throws NoSuchElementException
+String Catalog.getTableName(int tableid) throws NoSuchElementException
+\end{lstlisting}
+
+Reason being that other getters which take tableId throw such an exception if a table with the matching ID does not exist, thus similar behavior should be expected from these two.
+
+There is a behavior difference from the spec, which seems rather trivial for this project: \textit{Catalog.toString()} prints ``Name(Type)'' instead of ``Type(Name)'' as given by spec, since the former seems more conventional; There are also a few (trivial) behavior definitions add-ons. (For example, SeqScan.rewind() calls open() automatically after rewinding.)
+
+\section{Missing elements}
+
+Other than the functions mentioned as ``not needed for lab 1'', the implementation does not have the full \textit{BufferPool.getPage()} implementation (for a start, missing \textit{eviction} call as \textit{eviction} is not implemented). Implementing these without an actual eviction implementation would not change the behavior in lab 1's tests, so these functions are not fully implemented.
+
+\section{Summary}
+
+The project took about 24 hours in total. Getting started with simpledb, learning what's implemented and what's needed, as well as the test framework took a considerable amount of time. The actual implementation is rather clear once the relationship between each module, and the utilities of each class are figured out. Testing took a large amount of time, since exceptions such as \textit{NullPointerException} and \textit{ClassCastException} were not handled properly in the initial implementation.
+
+One interesting note while testing: the author created his own table file, and tried the sample scan code (currently in ``src'' folder, named ``IteratorQueryTest.java'') on the custom dat file, however the final line is always missing. The problem is resolved using hexdump on the dat file, and finding that the corresponding bit in page header is not set as expected. The problem ended up being the source txt file (copied directly from the example one in html) has one white space before a line break and after the last integer, which causes the last integer and the line it belongs to get omitted during conversion.
+
+\end{document}
