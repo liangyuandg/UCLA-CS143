@@ -1,11 +1,20 @@
 package simpledb;
 
+import java.util.*;
+
 /**
  * Knows how to compute some aggregate over a set of IntFields.
  */
 public class IntegerAggregator implements Aggregator {
 
     private static final long serialVersionUID = 1L;
+    private int gbField;
+    private Type gbFieldType;
+    private int aField;
+    private Op op;
+
+    private HashMap<Field, ArrayList<IntField>> tupleStorage;
+    private ArrayList<IntField> tupleStorageNoGrouping;
 
     /**
      * Aggregate constructor
@@ -21,9 +30,21 @@ public class IntegerAggregator implements Aggregator {
      * @param what
      *            the aggregation operator
      */
-
     public IntegerAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
-        // some code goes here
+        this.gbField = gbfield;
+        this.gbFieldType = gbfieldtype;
+        this.aField = afield;
+        this.op = what;
+
+        if (isGrouping()) {
+            this.tupleStorage = new HashMap<Field, ArrayList<IntField>>();
+        } else {
+            this.tupleStorageNoGrouping = new ArrayList<IntField>();
+        }
+    }
+
+    public Boolean isGrouping() {
+        return this.gbField != NO_GROUPING && this.gbFieldType != null;
     }
 
     /**
@@ -34,7 +55,74 @@ public class IntegerAggregator implements Aggregator {
      *            the Tuple containing an aggregate field and a group-by field
      */
     public void mergeTupleIntoGroup(Tuple tup) {
-        // some code goes here
+        if (isGrouping()) {
+            Field gbValue = tup.getField(this.gbField);
+            if (this.tupleStorage.containsKey(gbValue)) {
+                this.tupleStorage.get(gbValue).add((IntField)tup.getField(this.aField));
+            } else {
+                this.tupleStorage.put(gbValue, new ArrayList<IntField>());
+                this.tupleStorage.get(gbValue).add((IntField)tup.getField(this.aField));
+            }
+        } else {
+            this.tupleStorageNoGrouping.add((IntField)tup.getField(this.aField));
+        }
+    }
+
+    /* This should be called with fields.size() > 0; similar for the following functions */
+    public IntField getAvg(ArrayList<IntField> fields) {
+        int sum = 0;
+        for (int i = 0; i < fields.size(); i++) {
+            sum += fields.get(i).getValue();
+        }
+        return new IntField(sum / fields.size());
+    }
+
+    public IntField getMin(ArrayList<IntField> fields) {
+        int min = Integer.MAX_VALUE;
+        for (int i = 0; i < fields.size(); i++) {
+            if (fields.get(i).getValue() < min) {
+                min = fields.get(i).getValue();
+            }
+        }
+        return new IntField(min);
+    }
+
+    public IntField getMax(ArrayList<IntField> fields) {
+        int max = Integer.MIN_VALUE;
+        for (int i = 0; i < fields.size(); i++) {
+            if (fields.get(i).getValue() > max) {
+                max = fields.get(i).getValue();
+            }
+        }
+        return new IntField(max);
+    }
+
+    public IntField getCount(ArrayList<IntField> fields) {
+        return new IntField(fields.size());
+    }
+
+    public IntField getSum(ArrayList<IntField> fields) {
+        int sum = 0;
+        for (int i = 0; i < fields.size(); i++) {
+            sum += fields.get(i).getValue();
+        }
+        return new IntField(sum);
+    }
+
+    public IntField getAggregate(ArrayList<IntField> fields) {
+        switch (this.op) {
+            case MIN:
+                return this.getMin(fields);
+            case MAX:
+                return this.getMax(fields);
+            case AVG:
+                return this.getAvg(fields);
+            case SUM:
+                return this.getSum(fields);
+            case COUNT:
+                return this.getCount(fields);
+        }
+        return new IntField(0);
     }
 
     /**
@@ -46,9 +134,42 @@ public class IntegerAggregator implements Aggregator {
      *         the constructor.
      */
     public DbIterator iterator() {
-        // some code goes here
-        throw new
-        UnsupportedOperationException("please implement me for lab2");
-    }
+        /* iterator() call recalculates all the aggregates, which may not be the efficient solution */
+        TupleDesc td;
+        ArrayList<Tuple> tuples = new ArrayList<Tuple>();
 
+        if (isGrouping()) {
+            Type[] typeAr = new Type[2];
+            typeAr[0] = this.gbFieldType;
+            typeAr[1] = Type.INT_TYPE;
+            td = new TupleDesc(typeAr);
+
+            Iterator entries = this.tupleStorage.entrySet().iterator();
+            // TODO: handling 0-length records
+            while (entries.hasNext()) {
+                try {
+                    Map.Entry entry = (Map.Entry) entries.next();
+                    ArrayList<IntField> fields = (ArrayList<IntField>) entry.getValue();
+                    IntField aggregate = this.getAggregate(fields);
+                    Tuple tup = new Tuple(td);
+                    tup.setField(0, (Field)entry.getKey());
+                    tup.setField(1, aggregate);
+                    tuples.add(tup);
+                } catch (ClassCastException exception) {
+                    // TODO: this should not fail silently
+                }
+            }
+        } else {
+            Type[] typeAr = new Type[1];
+            typeAr[0] = Type.INT_TYPE;
+            td = new TupleDesc(typeAr);
+
+            Tuple tup = new Tuple(td);
+            tup.setField(0, this.getAggregate(this.tupleStorageNoGrouping));
+            tuples.add(tup);
+        }
+
+        TupleIterator iterator = new TupleIterator(td, tuples);
+        return iterator;
+    }
 }
