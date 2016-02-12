@@ -110,19 +110,25 @@ public class IntegerAggregator implements Aggregator {
     }
 
     public IntField getAggregate(ArrayList<IntField> fields) {
-        switch (this.op) {
-            case MIN:
-                return this.getMin(fields);
-            case MAX:
-                return this.getMax(fields);
-            case AVG:
-                return this.getAvg(fields);
-            case SUM:
-                return this.getSum(fields);
-            case COUNT:
-                return this.getCount(fields);
+        if (fields.size() > 0) {
+            switch (this.op) {
+                case MIN:
+                    return this.getMin(fields);
+                case MAX:
+                    return this.getMax(fields);
+                case AVG:
+                    return this.getAvg(fields);
+                case SUM:
+                    return this.getSum(fields);
+                case COUNT:
+                    return this.getCount(fields);
+            }
+            // we return null for aggregation op that we don't recognize
+            return null;
+        } else {
+            // we return null for zero-length records
+            return null;
         }
-        return new IntField(0);
     }
 
     /**
@@ -144,20 +150,12 @@ public class IntegerAggregator implements Aggregator {
             typeAr[1] = Type.INT_TYPE;
             td = new TupleDesc(typeAr);
 
-            Iterator entries = this.tupleStorage.entrySet().iterator();
-            // TODO: handling 0-length records
-            while (entries.hasNext()) {
-                try {
-                    Map.Entry entry = (Map.Entry) entries.next();
-                    ArrayList<IntField> fields = (ArrayList<IntField>) entry.getValue();
-                    IntField aggregate = this.getAggregate(fields);
-                    Tuple tup = new Tuple(td);
-                    tup.setField(0, (Field)entry.getKey());
-                    tup.setField(1, aggregate);
-                    tuples.add(tup);
-                } catch (ClassCastException exception) {
-                    // TODO: this should not fail silently
-                }
+            for (Map.Entry<Field, ArrayList<IntField>> entry : this.tupleStorage.entrySet()) {
+                IntField aggregate = this.getAggregate(entry.getValue());
+                Tuple tup = new Tuple(td);
+                tup.setField(0, entry.getKey());
+                tup.setField(1, aggregate);
+                tuples.add(tup);
             }
         } else {
             Type[] typeAr = new Type[1];
