@@ -110,25 +110,32 @@ public class IntegerAggregator implements Aggregator {
     }
 
     public IntField getAggregate(ArrayList<IntField> fields) {
-        if (fields.size() > 0) {
-            switch (this.op) {
-                case MIN:
+        switch (this.op) {
+            case MIN:
+                if (fields.size() > 0) {
                     return this.getMin(fields);
-                case MAX:
+                } else {
+                    return null;
+                }
+            case MAX:
+                if (fields.size() > 0) {
                     return this.getMax(fields);
-                case AVG:
+                } else {
+                    return null;
+                }
+            case AVG:
+                if (fields.size() > 0) {
                     return this.getAvg(fields);
-                case SUM:
-                    return this.getSum(fields);
-                case COUNT:
-                    return this.getCount(fields);
-            }
-            // we return null for aggregation op that we don't recognize
-            return null;
-        } else {
-            // we return null for zero-length records
-            return null;
+                } else {
+                    return null;
+                }
+            case SUM:
+                return this.getSum(fields);
+            case COUNT:
+                return this.getCount(fields);
         }
+        // we return null for aggregation op that we don't recognize
+        return null;
     }
 
     /**
