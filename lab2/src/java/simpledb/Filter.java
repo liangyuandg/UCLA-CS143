@@ -9,7 +9,7 @@ public class Filter extends Operator {
 
     private static final long serialVersionUID = 1L;
     private Predicate predicate;
-    private DbIterator dbIterator;
+    private DbIterator child;
 
     /**
      * Constructor accepts a predicate to apply and a child operator to read
@@ -22,7 +22,7 @@ public class Filter extends Operator {
      */
     public Filter(Predicate p, DbIterator child) {
         this.predicate = p;
-        this.dbIterator = child;
+        this.child = child;
     }
 
     public Predicate getPredicate() {
@@ -30,22 +30,25 @@ public class Filter extends Operator {
     }
 
     public TupleDesc getTupleDesc() {
-        return this.dbIterator.getTupleDesc();
+        return this.child.getTupleDesc();
     }
 
+    /* TODO: write about the open() here doesn't mean opening the child iterator, same as Join.open()
+             , Aggregate.open(), etc, but instead mean opening this iterator itself. 
+             Child's open is separate; this may evade the test as the test always pass in opened children */
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
         super.open();
-        this.dbIterator.open();
+        this.child.open();
     }
 
     public void close() {
         super.close();
-        this.dbIterator.close();
+        this.child.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        this.dbIterator.rewind();
+        this.child.rewind();
     }
 
     /**
@@ -61,8 +64,8 @@ public class Filter extends Operator {
             TransactionAbortedException, DbException {
         // TODO: double check this method
         Tuple next = null;
-        while (this.dbIterator.hasNext()) {
-            next = this.dbIterator.next();
+        while (this.child.hasNext()) {
+            next = this.child.next();
             if (this.predicate.filter(next)) {
                 return next;
             }
@@ -73,14 +76,14 @@ public class Filter extends Operator {
     @Override
     public DbIterator[] getChildren() {
         DbIterator[] childrenArray = new DbIterator[1];
-        childrenArray[0] = this.dbIterator;
+        childrenArray[0] = this.child;
         return childrenArray;
     }
 
     @Override
     public void setChildren(DbIterator[] children) {
         if (children.length > 0) {
-            this.dbIterator = children[0];
+            this.child = children[0];
         }
     }
 

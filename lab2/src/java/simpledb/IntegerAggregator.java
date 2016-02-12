@@ -147,7 +147,9 @@ public class IntegerAggregator implements Aggregator {
      *         the constructor.
      */
     public DbIterator iterator() {
-        /* iterator() call recalculates all the aggregates, which may not be the efficient solution */
+        /* TODO: write about iterator() call recalculates all the aggregates, which seems necessary given how the test case is formulated 
+                 (merge one tuple, get iterator, expect the result to be updated). Note that recalculate is not necessary unless the source tuples 
+                 change, but as a simplification here we implement it like this. */
         TupleDesc td;
         ArrayList<Tuple> tuples = new ArrayList<Tuple>();
 
