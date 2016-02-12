@@ -11,6 +11,9 @@ public class Join extends Operator {
 
     private DbIterator child1;
     private DbIterator child2;
+
+    private Tuple child1Tup;
+
     private JoinPredicate predicate;
 
     /**
@@ -27,6 +30,7 @@ public class Join extends Operator {
     public Join(JoinPredicate p, DbIterator child1, DbIterator child2) {
         this.child1 = child1;
         this.child2 = child2;
+        this.child1Tup = null;
         this.predicate = p;
     }
 
@@ -40,7 +44,8 @@ public class Join extends Operator {
      *       alias or table name.
      * */
     public String getJoinField1Name() {
-        return null;
+        // TODO: throw/catch exceptions from getFieldName
+        return this.child1.getTupleDesc().getFieldName(this.predicate.getField1());
     }
 
     /**
@@ -49,8 +54,7 @@ public class Join extends Operator {
      *       alias or table name.
      * */
     public String getJoinField2Name() {
-        // some code goes here
-        return null;
+        return this.child2.getTupleDesc().getFieldName(this.predicate.getField2());
     }
 
     /**
@@ -58,21 +62,28 @@ public class Join extends Operator {
      *      implementation logic.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
+        TupleDesc td1 = this.child1.getTupleDesc();
+        TupleDesc td2 = this.child2.getTupleDesc();
+        return TupleDesc.merge(td1, td2);
     }
 
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
-        // some code goes here
-    }
+        super.open();
+        this.child1.open();
+        this.child2.open();
+   }
 
     public void close() {
-        // some code goes here
+        super.close();
+        this.child1.close();
+        this.child2.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
+        this.child1.rewind();
+        this.child2.rewind();
+        this.child1Tup = null;
     }
 
     /**
@@ -94,19 +105,68 @@ public class Join extends Operator {
      * @see JoinPredicate#filter
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        // some code goes here
+        /* TODO: Describe your implementation in your lab writeup. */
+        /* Note: with the way that TestUtil.matchAllTuples's implemented, 
+           this becomes quite inefficient as rewinds on this.child1 and this.child2 happens very often.
+           The test method only checks for existence of expected in actual, 
+           and does not check if the number of occurrences is correct, and could be misleading.
+           Besides it also caused confusion for debugging. 
+           A better test method would be: walk through actual, walk through expected, compare elements, O(n^2) or not. */
+        Tuple tup1 = null;
+        Tuple tup2 = null;
+
+        if (this.child1Tup != null) {
+            while (this.child2.hasNext()) {
+                tup1 = this.child1Tup;
+                tup2 = this.child2.next();
+
+                if (this.predicate.filter(tup1, tup2)) {
+                    this.child1Tup = tup1;
+                    return joinTuples(tup1, tup2);
+                }
+            }
+        }
+
+        while (this.child1.hasNext()) {
+            tup1 = this.child1.next();
+            this.child2.rewind();
+            while (this.child2.hasNext()) {
+                tup2 = this.child2.next();
+
+                if (this.predicate.filter(tup1, tup2)) {
+                    this.child1Tup = tup1;
+                    return joinTuples(tup1, tup2);
+                }
+            }
+        }
         return null;
+    }
+
+    private Tuple joinTuples(Tuple tup1, Tuple tup2) {
+        Tuple result = new Tuple(this.getTupleDesc());
+        for (int i = 0; i < this.child1.getTupleDesc().numFields(); i++) {
+            result.setField(i, tup1.getField(i));
+        }
+        for (int i = 0; i < this.child2.getTupleDesc().numFields(); i++) {
+            result.setField(i + this.child1.getTupleDesc().numFields(), tup2.getField(i));
+        }
+        return result;
     }
 
     @Override
     public DbIterator[] getChildren() {
-        // some code goes here
-        return null;
+        DbIterator[] childrenArray = new DbIterator[2];
+        childrenArray[0] = this.child1;
+        childrenArray[1] = this.child2;
+        return childrenArray;
     }
 
     @Override
     public void setChildren(DbIterator[] children) {
-        // some code goes here
+        if (children.length > 1) {
+            this.child1 = children[0];
+            this.child2 = children[1];
+        }
     }
 
 }

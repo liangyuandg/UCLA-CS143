@@ -11,8 +11,6 @@ public class Filter extends Operator {
     private Predicate predicate;
     private DbIterator dbIterator;
 
-    private DbIterator[] children;
-
     /**
      * Constructor accepts a predicate to apply and a child operator to read
      * tuples to filter from.
@@ -72,15 +70,18 @@ public class Filter extends Operator {
         return null;
     }
 
-    // TODO: The purpose of these methods?
     @Override
     public DbIterator[] getChildren() {
-        return this.children;
+        DbIterator[] childrenArray = new DbIterator[1];
+        childrenArray[0] = this.dbIterator;
+        return childrenArray;
     }
 
     @Override
     public void setChildren(DbIterator[] children) {
-        this.children = children;
+        if (children.length > 0) {
+            this.dbIterator = children[0];
+        }
     }
 
 }

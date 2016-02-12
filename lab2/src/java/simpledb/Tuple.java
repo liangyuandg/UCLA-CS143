@@ -24,7 +24,7 @@ public class Tuple implements Serializable {
             this.tupleDesc = td;
             // this would actually cause problems when setting field, since it confuses capacity with size of a list
             //this.fields = new ArrayList<Field>(this.tupleDesc.numFields());
-            this.fields = Arrays.asList(new Field[10]);
+            this.fields = Arrays.asList(new Field[td.numFields()]);
         }
     }
 
