@@ -44,15 +44,6 @@ public class Aggregate extends Operator {
         this.gField = gfield;
         this.op = aop;
 
-        switch (child.getTupleDesc().getFieldType(afield)) {
-            case INT_TYPE:
-                this.aggregator = new IntegerAggregator(gfield, this.child.getTupleDesc().getFieldType(gfield), afield, aop);
-                break;
-            case STRING_TYPE:
-                this.aggregator = new StringAggregator(gfield, this.child.getTupleDesc().getFieldType(gfield), afield, aop);
-                break;
-        }
-
         // we don't calculate aggregation immediately, because dbIterator child may not be open
         this.aggregatedIterator = null;
     }
@@ -107,7 +98,26 @@ public class Aggregate extends Operator {
 
     public void open() throws NoSuchElementException, DbException,
             TransactionAbortedException {
+        // we calculate aggregate upon open()   
+        switch (this.child.getTupleDesc().getFieldType(this.aField)) {
+            case INT_TYPE:
+                if (this.gField == Aggregator.NO_GROUPING) {
+                    this.aggregator = new IntegerAggregator(this.gField, null, this.aField, this.op);
+                } else {
+                    this.aggregator = new IntegerAggregator(this.gField, this.child.getTupleDesc().getFieldType(this.gField), this.aField, this.op);
+                }
+                break;
+            case STRING_TYPE:
+                if (this.gField == Aggregator.NO_GROUPING) {
+                    this.aggregator = new StringAggregator(this.gField, null, this.aField, this.op);
+                } else {
+                    this.aggregator = new StringAggregator(this.gField, this.child.getTupleDesc().getFieldType(this.gField), this.aField, this.op);
+                }
+                break;
+        }
+
         super.open();
+        this.child.open();
         while (this.child.hasNext()) {
             this.aggregator.mergeTupleIntoGroup(this.child.next());
         }
@@ -135,6 +145,8 @@ public class Aggregate extends Operator {
     public void rewind() throws DbException, TransactionAbortedException {
         this.close();
         this.open();
+        // we don't mess with the child iterator in this case, as if we rewind the child as well, 
+        // we'll end up with duplicated entries in aggregator
     }
 
     /**
@@ -169,6 +181,7 @@ public class Aggregate extends Operator {
 
     public void close() {
         super.close();
+        this.child.close();
         if (this.aggregatedIterator != null) {
             this.aggregatedIterator.close();
         }

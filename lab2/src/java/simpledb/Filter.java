@@ -36,6 +36,9 @@ public class Filter extends Operator {
     /* TODO: write about the open() here doesn't mean opening the child iterator, same as Join.open()
              , Aggregate.open(), etc, but instead mean opening this iterator itself. 
              Child's open is separate; this may evade the test as the test always pass in opened children */
+    /* Or instead, we implement it as opening/closing child anyway, as rewind will always mess with child iterator.
+             This means that one dbIterator should be not be shared among different instances of Operator. */
+    /* Conclusion: actually systemtest expects us to open/close child iterator here, so this implementation's fine. */
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
         super.open();

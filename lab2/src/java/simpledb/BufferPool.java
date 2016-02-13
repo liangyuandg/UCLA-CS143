@@ -136,8 +136,8 @@ public class BufferPool {
      */
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for lab1
+        // Similar with getPage, relies on the deleteTuple method of the table's associated file object
+        Database.getCatalog().getDatabaseFile(tableId).insertTuple(tid, t);
     }
 
     /**
@@ -154,8 +154,9 @@ public class BufferPool {
      */
     public  void deleteTuple(TransactionId tid, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
-        // some code goes here
-        // not necessary for lab1
+        int tableId = t.getRecordId().getPageId().getTableId();
+        // Similar with getPage, relies on the deleteTuple method of the table's associated file object
+        Database.getCatalog().getDatabaseFile(tableId).deleteTuple(tid, t);
     }
 
     /**
