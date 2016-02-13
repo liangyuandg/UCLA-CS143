@@ -2,6 +2,7 @@ package simpledb;
 
 import java.io.*;
 
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -207,15 +208,17 @@ public class BufferPool {
         if (this.pages.size() == 0)
             throw new DbException("BufferPool empty");
 
-        for (PageId key : this.pages.keySet()) {
-            try {
-                flushPage(key);
-            } catch (IOException exception) {
-                exception.printStackTrace();
-            }
-            this.pages.remove(key);
-            break;
+        // Here we use a random eviction, since eviction mechanism does not matter
+        Random random = new Random();
+        List<PageId> keys = new ArrayList<PageId>(this.pages.keySet());
+        PageId randomKey = keys.get(random.nextInt(keys.size()));
+        
+        try {
+            flushPage(randomKey);
+        } catch (IOException exception) {
+            exception.printStackTrace();
         }
+        this.pages.remove(randomKey);
     }
 
     private int maxPages;
