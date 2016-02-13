@@ -166,6 +166,12 @@ public class TupleDesc implements Serializable {
         String fieldName;
         for (int i = 0; i < this.tdItems.size(); i++) {
             fieldName = this.getFieldName(i);
+            //System.out.println("String: " + name);
+            //String[] tryName = name.split("\\.");
+            //System.out.println("Length: " + Integer.toString(tryName.length));
+            //System.out.println("Scanning fieldName: " + fieldName + " against " + tryName[tryName.length - 1]);
+
+            //if (fieldName != null && this.getFieldName(i).equals(tryName[tryName.length - 1])) {
             if (fieldName != null && this.getFieldName(i).equals(name)) {
                 return i;
             }
