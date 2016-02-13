@@ -32,7 +32,7 @@ public class BufferPool {
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-        this.numPages = numPages;
+        this.maxPages = numPages;
         this.pages = new ConcurrentHashMap<PageId, Page>();
     }
     
@@ -62,16 +62,16 @@ public class BufferPool {
      */
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        // Permission is READ_ONLY or READ_WRITE, so shouldn't matter here
         if (this.pages.containsKey(pid)) {
             return this.pages.get(pid);
         } else {
-            // Check: eviction not implemented anyway, so we don't call it here for project 1
+            if (this.pages.size() >= this.maxPages) {
+                this.evictPage();
+            }
             // Check: possible exceptions, such as FileNotExist (when open) or IOException (when read) is caught by readPage
             Page page = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
             // (Not explicitly creating HeapFile actually allowed us to use the interface DbFile)
             this.pages.put(pid, page);
-            this.numPages++;
             return page;
         }
     }
@@ -136,7 +136,7 @@ public class BufferPool {
      */
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
-        // Similar with getPage, relies on the deleteTuple method of the table's associated file object
+        // Similar with getPage, relies on the insertTuple method of the table's associated file object
         Database.getCatalog().getDatabaseFile(tableId).insertTuple(tid, t);
     }
 
@@ -165,9 +165,9 @@ public class BufferPool {
      *     break simpledb if running in NO STEAL mode.
      */
     public synchronized void flushAllPages() throws IOException {
-        // some code goes here
-        // not necessary for lab1
-
+        for (ConcurrentHashMap.Entry<PageId, Page> entry : this.pages.entrySet()) {
+            this.flushPage(entry.getKey());
+        }
     }
 
     /** Remove the specific page id from the buffer pool.
@@ -185,8 +185,11 @@ public class BufferPool {
      * @param pid an ID indicating the page to flush
      */
     private synchronized void flushPage(PageId pid) throws IOException {
-        // some code goes here
-        // not necessary for lab1
+        // Similar with getPage, relies on the writePage method of the table's associated file object
+        if (this.pages.containsKey(pid) && this.pages.get(pid).isDirty() != null) {
+            int tableId = pid.getTableId();
+            Database.getCatalog().getDatabaseFile(tableId).writePage(this.pages.get(pid));
+        }
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -201,10 +204,22 @@ public class BufferPool {
      * Flushes the page to disk to ensure dirty pages are updated on disk.
      */
     private synchronized void evictPage() throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        if (this.pages.size() == 0)
+            throw new DbException("BufferPool empty");
+
+        for (PageId key : this.pages.keySet()) {
+            if (this.pages.get(key).isDirty() == null) {
+                try {
+                    flushPage(key);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                this.pages.remove(key);
+                break;
+            }
+        }
     }
 
-    private int numPages;
+    private int maxPages;
     private ConcurrentHashMap<PageId, Page> pages;
 }

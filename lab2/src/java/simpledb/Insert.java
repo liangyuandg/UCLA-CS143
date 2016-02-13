@@ -13,7 +13,7 @@ public class Insert extends Operator {
     private TransactionId tid;
     private DbIterator child;
     private int tableId;
-    private Boolean called;
+    private boolean called;
 
     /**
      * Constructor.

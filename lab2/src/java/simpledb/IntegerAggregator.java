@@ -43,7 +43,7 @@ public class IntegerAggregator implements Aggregator {
         }
     }
 
-    public Boolean isGrouping() {
+    public boolean isGrouping() {
         return this.gbField != NO_GROUPING && this.gbFieldType != null;
     }
 

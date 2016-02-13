@@ -12,7 +12,7 @@ public class Delete extends Operator {
 
     private TransactionId tid;
     private DbIterator child;
-    private Boolean called;
+    private boolean called;
 
     /**
      * Constructor specifying the transaction that this delete belongs to as
