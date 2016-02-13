@@ -208,15 +208,13 @@ public class BufferPool {
             throw new DbException("BufferPool empty");
 
         for (PageId key : this.pages.keySet()) {
-            if (this.pages.get(key).isDirty() == null) {
-                try {
-                    flushPage(key);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                this.pages.remove(key);
-                break;
+            try {
+                flushPage(key);
+            } catch (IOException exception) {
+                exception.printStackTrace();
             }
+            this.pages.remove(key);
+            break;
         }
     }
 

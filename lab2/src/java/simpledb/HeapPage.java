@@ -63,6 +63,9 @@ public class HeapPage implements Page {
         dis.close();
 
         setBeforeImage();
+
+        this.dirty = false;
+        this.dirtyTid = null;
     }
 
     /** Retrieve the number of tuples on this page.
@@ -242,12 +245,12 @@ public class HeapPage implements Page {
      */
     public void deleteTuple(Tuple t) throws DbException {
         RecordId rid = t.getRecordId();
-        if (rid != null && rid.getPageId().equals(this.pid)) {
-            // we don't reset the item in array
+        if (rid != null && rid.getPageId().equals(this.pid) && this.isSlotUsed(rid.tupleno())) {
+            //this.tuples[rid.tupleno()] = null;
             this.markSlotUsed(rid.tupleno(), false);
             t.setRecordId(null);
         } else {
-            throw new DbException("The tuple to be deleted is not on this page.");
+            throw new DbException("The tuple to be deleted is not on this page, or is already empty.");
         }
     }
 
@@ -326,7 +329,7 @@ public class HeapPage implements Page {
         if (value) {
             this.header[loc] = (byte)(this.header[loc] | (1 << (i % 8)));
         } else {
-            this.header[loc] = (byte)(this.header[loc] & (255 - 1 << (i % 8)));
+            this.header[loc] = (byte)(this.header[loc] & (255 - (1 << (i % 8))));
         }
     }
 
