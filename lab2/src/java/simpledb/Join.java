@@ -44,7 +44,6 @@ public class Join extends Operator {
      *       alias or table name.
      * */
     public String getJoinField1Name() {
-        // TODO: throw/catch exceptions from getFieldName
         return this.child1.getTupleDesc().getFieldName(this.predicate.getField1());
     }
 

@@ -90,7 +90,6 @@ public class HeapFile implements DbFile {
          * @throws DbException When rewind is unsupported.
          */
         public void rewind() throws DbException, TransactionAbortedException {
-            // TODO: rewind function not tested; rewind spec: should open() be called after rewind, or does rewind contain open?
             if (this.tupleIterator != null) {
                 this.close();
             }
