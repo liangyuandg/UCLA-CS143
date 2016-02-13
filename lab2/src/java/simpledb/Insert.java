@@ -45,7 +45,11 @@ public class Insert extends Operator {
     }
 
     public TupleDesc getTupleDesc() {
-        return this.child.getTupleDesc();
+        // This meant the tupleDesc of this operator, not that of its children
+        Type[] typeAr = new Type[1];
+        typeAr[0] = Type.INT_TYPE;
+        TupleDesc tupleDesc = new TupleDesc(typeAr);
+        return tupleDesc;
     }
 
     public void open() throws DbException, TransactionAbortedException {
