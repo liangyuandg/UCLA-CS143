@@ -29,51 +29,43 @@
 
 \setlength{\droptitle}{-10em}   % This is your set screw
 
-\title{CS 143: Summary of lab 1}
+\title{CS 143: Summary of lab 2}
 \author{Zhehao Wang  404380075}
-\date{Jan 2015}
+\date{Feb 2015}
 \begin{document}
 
 \maketitle
 
-\section{Design decisions}
+\section{Design and implementation decisions}
 
-Most of decisions in lab 1 are implementation decisions: mainly choosing data structures for members of certain classes.
+The implementation is based on that of lab 1's, and this sections goes over the design and implementation decisions made specifically for lab 2.
 
-For example, in \textit{Catalog} we introduced the class \textit{Table} to hold the entries of \textit{tableId}, \textit{tableName}, \textit{dbFile}, and \textit{pKeyField}. \textit{Catalog} needs to store a series of tables, and for that we chose \textit{ConcurrentHashMap<int, Table>} which maps \textit{tableId} to the \textit{Table} entry. This is because \textit{tableId} is unique, and most of the access methods refer to values in the entry by the \textit{tableId}. \textit{HashMap} lookup would be faster than linear look up, and concurrent access could be a future concern. One method \textit{getTableId} gets the ID from \textit{tableName}, for this kind of access we created another mapping from table names to IDs.
+\begin{itemize}
 
-Similar decision exists for choosing the data structure to hold \textit{TDItems} in \textit{TupleDesc}; for that we choose an \textit{ArrayList}, since the way the collection of \textit{TDItems}'s used is most like a plain list. Here we don't go into detail about other similar choices.
+\item{Page eviction policy: our implementation evicts a random page when the BufferPool is full. Note that \textit{pin\_count} is not explicitly in the implementation. JVM garbage collector's reference count can be considered as similar in the sense that objects being used will not get recollected.}
 
-Another minor decision is whether \textit{HeapFile.readPage} should be throw \textit{IOException} and \textit{FileNotFoundException} as it reads from a \textit{RandomAccessFile}; we chose not to throw these exceptions and instead handle them within \textit{readPage} method, because throwing them would require many changes to the interface.
+\item{Join method: this implementation uses a basic nested loop join.}
 
-A final minor decision is the implementation of \textit{HeapFileIterator} class which implements \textit{DbFileIterator} interface. Such an implementation class is needed, as we cannot instantiate an interface when accessing \textit{HeapFile.iterator()}, so instead we implement the interface, and hook it up with \textit{BufferPool.getPage()} to provide the functions it needs.
+\item{Iterators, and when the operator action happens}
+
+This lab includes the implementation of several operators, each as a subclass of the parent \textit{Operator}. \textit{Filter}, \textit{Join}, \textit{Insert}, \textit{Delete}, and \textit{Aggregate} are all such examples. Each of these provides an \textit{Iterator} to the result of the operation, and decisions need to be made regarding when the action, for example, an actual \textit{Join} should happen; Specifically: whether it should be done before the first call to a \textit{fetchNext}, or it should happen in a \textit{fetchNext} call, in which children are iterated as needed.
+
+For \textit{Filter} and \textit{Join}, our implementation uses the latter approach; for \textit{Aggregate}, the former approach's used: the children are traversed upon an \textit{open} call, which calls the \textit{iterator} of an underlying \textit{IntegerAggregator} or \textit{StringAggregator} that generates the aggregated tuples, and its \textit{fetchNext} merely brings back the next item from the aggregation, if it's already calculated. \textit{Insert} and \textit{Delete} are different, as \textit{fetchNext} is supposed to be called only once, during which all results are calculated. The rationale of having the difference between the first two categories is that we want the evaluation of \textit{Operator} to be as lazy as possible, in case the user does not need all the results (for example, having a LIMIT clause), however, in the case of \textit{Aggregate} where each resulting tuple's only available after a scan through all the tuples (and GROUP BY can happen), it's likely more efficient to generate the results at once than traversing the children each time \textit{fetchNext} is called.
+
+\end{itemize}
 
 \section{Changes made to the API}
 
-Changes to the API were minimal in this project, with the only ones being adding \textit{NoSuchElementException} to the following function signatures. (Java uses a type system enhanced with explicit exception declaration, so adding types of Exception should count as changes to the API)
-
-\begin{lstlisting}
-String Catalog.getPrimaryKey(int tableid) 
-String Catalog.getTableName(int tableid) 
-\end{lstlisting}
-As in the handin, these become
-\begin{lstlisting}
-String Catalog.getPrimaryKey(int tableid) throws NoSuchElementException
-String Catalog.getTableName(int tableid) throws NoSuchElementException
-\end{lstlisting}
-
-Reason being that other getters which take tableId throw such an exception if a table with the matching ID does not exist, thus similar behavior should be expected from these two.
-
-There is a behavior difference from the spec, which seems rather trivial for this project: \textit{Catalog.toString()} prints ``Name(Type)'' instead of ``Type(Name)'' as given by spec, since the former seems more conventional; There are also a few (trivial) behavior definitions add-ons. (For example, SeqScan.rewind() calls open() automatically after rewinding.)
-
-\section{Missing elements}
-
-Other than the functions mentioned as ``not needed for lab 1'', the implementation does not have the full \textit{BufferPool.getPage()} implementation (for a start, missing \textit{eviction} call as \textit{eviction} is not implemented). Implementing these without an actual eviction implementation would not change the behavior in lab 1's tests, so these functions are not fully implemented.
+This implementation does not make any changes to the API. Making \textit{Operator}'s \textit{opened} attribute was considered at first, so that classes inheriting from \textit{Operator} could set the flag in their \textit{open} methods, but a \textit{super.open} call is used instead.
 
 \section{Summary}
 
-The project took about 24 hours in total. Getting started with simpledb, learning what's implemented and what's needed, as well as the test framework took a considerable amount of time. The actual implementation is rather clear once the relationship between each module, and the utilities of each class are figured out. Testing took a large amount of time, since exceptions such as \textit{NullPointerException} and \textit{ClassCastException} were not handled properly in the initial implementation.
+Approximately 24 hours were spent on this lab.
 
-One interesting note while testing: the author created his own table file, and tried the sample scan code (currently in ``src'' folder, named ``IteratorQueryTest.java'') on the custom dat file, however the final line is always missing. The problem is resolved using hexdump on the dat file, and finding that the corresponding bit in page header is not set as expected. The problem ended up being the source txt file (copied directly from the example one in html) has one white space before a line break and after the last integer, which causes the last integer and the line it belongs to get omitted during conversion.
+This update to lab 1 code fixed a \textit{Tuple} constructor that uses a fixed length to initialize the fields array. The fixed length was an oversight, and will cause problems if tuples with a large amount of columns are used when testing.
+
+The biggest confusion we had was the expected behavior of the \textit{open}, \textit{close}, and \textit{rewind} methods of the child classes of \textit{Operator}. Given that each has their own resulting iterator, and some children iterator, we are confused whether these calls are meant to operate on their own iterator, or their children's iterator as well. The unit test cases always pass in opened children iterators, so the former's assumed at first, based on the understanding that these methods want to mess as little as possible with the states of the children iterators, since they may be shared among other instances. However, system test cases pass in unopened children iterators, and expect the \textit{Operator} to work without opening their children iterator separately. Thus we concluded that the latter's the expected approach, and our implementation has the caveat that the iterators passed in \textit{Operator} constructors should not be shared between different instances, or otherwise modified during the \textit{Operator}'s operation.
+
+The second confusion lies with the example query interface, which we raised on Piazza. Given the example setup, projection by column name does not work because of the \textit{TupleDesc.fieldNameToIndex(name)} implementation cannot match the given string with column names. Given string contains table aliases, but \textit{TupleDesc}'s not aware of them. Either the caller of \textit{fieldNameToIndex} or the function itself should strip the table aliases. We figured it's more reasonable for the caller in \textit{LogicalPlan} to do it, since \textit{fieldNameToIndex} cannot distinguish a column name with dots from a table alias. Since \textit{LogicalPlan} is not part of this lab, its implementation is left as-is. Thus, the simple query interface will not work if column names are involved (for example in SELECT, GROUP BY, or WHERE clause).
 
 \end{document}
