@@ -63,7 +63,11 @@ private[sql] class DiskPartition (
    * @param row the [[Row]] we are adding
    */
   def insert(row: Row) = {
-    // IMPLEMENT ME
+    if (data.size() < this.blockSize) {
+      this.data.add(row)
+    } else {
+      // Spill to disk
+    }
   }
 
   /**
