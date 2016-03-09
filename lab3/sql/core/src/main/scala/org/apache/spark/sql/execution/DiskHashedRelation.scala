@@ -63,11 +63,19 @@ private[sql] class DiskPartition (
    * @param row the [[Row]] we are adding
    */
   def insert(row: Row) = {
-    if (data.size() < this.blockSize) {
-      this.data.add(row)
-    } else {
-      // Spill to disk
+    if (inputClosed) {
+      throw new SparkException("Cannot insert after closing input!")
     }
+    // TODO: each block should not exceed its size, so if this insertion would cause size to go over, we spill the partition before inserting?
+    //       Or, if insertion causes size to go over, we then spill the partition?
+    // Here we use the former, and adds a method CS143Utils.getBytesFromRow
+    if (this.measurePartitionSize() + CS143Utils.getBytesFromRow(row).size > this.blockSize) {
+      this.spillPartitionToDisk()
+      // TODO: interestingly, spillPartitionToDisk does not clear this.data by itself
+      this.data.clear()
+    }
+    this.data.add(row)
+    this.writtenToDisk = false
   }
 
   /**
@@ -89,6 +97,7 @@ private[sql] class DiskPartition (
     // This array list stores the sizes of chunks written in order to read them back correctly.
     chunkSizes.add(bytes.size)
 
+    // TODO: This does not use the outputStream, intended?
     Files.write(path, bytes, StandardOpenOption.APPEND)
     writtenToDisk = true
   }
@@ -110,13 +119,27 @@ private[sql] class DiskPartition (
       var byteArray: Array[Byte] = null
 
       override def next() = {
-        // IMPLEMENT ME
-        null
+        // Scala note: val vs var, iterator hasNext() vs hasNext
+        if (currentIterator.hasNext) {
+          currentIterator.next()
+        } else {
+          if (fetchNextChunk()) {
+            currentIterator = CS143Utils.getListFromBytes(byteArray).iterator.asScala
+            currentIterator.next()
+          } else {
+            null
+          }
+        }
       }
 
       override def hasNext() = {
-        // IMPLEMENT ME
-        false
+        if (currentIterator.hasNext) {
+          true
+        } else {
+          // TODO: here we avoid calling fetchNextChunk, as we don't want to overwrite the byteArray
+          // Knowing if chunkSizeIterator hasNext is enough for knowing if there are more rows.
+          chunkSizeIterator.hasNext
+        }
       }
 
       /**
@@ -126,8 +149,12 @@ private[sql] class DiskPartition (
        * @return true unless the iterator is empty.
        */
       private[this] def fetchNextChunk(): Boolean = {
-        // IMPLEMENT ME
-        false
+        if (chunkSizeIterator.hasNext) {
+          byteArray = CS143Utils.getNextChunkBytes(inStream, chunkSizeIterator.next(), byteArray)
+          true
+        } else {
+          false
+        }
       }
     }
   }
@@ -140,7 +167,12 @@ private[sql] class DiskPartition (
    * also be closed.
    */
   def closeInput() = {
-    // IMPLEMENT ME
+    if (!writtenToDisk) {
+      this.spillPartitionToDisk()
+      this.data.clear()
+    }
+    // TODO: inStream should not be closed here, right?
+    outStream.close()
     inputClosed = true
   }
 
