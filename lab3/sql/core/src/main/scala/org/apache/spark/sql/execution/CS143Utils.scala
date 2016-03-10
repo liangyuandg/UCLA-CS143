@@ -120,8 +120,33 @@ object CS143Utils {
    * @return
    */
   def getUdfFromExpressions(expressions: Seq[Expression]): ScalaUdf = {
-    // IMPLEMENT ME
+    // Note: It's recommended that we don't use return in a Scala; so we try a tail recursion instead, as it's a more functional approach
+    def getUdf(remainingExpressions: Seq[Expression]): ScalaUdf = {
+      remainingExpressions match {
+        case Nil          => null
+        case head :: tail => head match {
+          case u: ScalaUdf => u
+          case otherwise   => getUdf(tail)
+        }
+      }
+    }
+
+    // Might not be best as reverse is likely O(N)
+    getUdf(expressions.reverse)
+
+    // Alternatively, the imperative approach:
+    // Note: differentiate Scala return with no return (return the value and type of last statement)
+    /*
+    for (x <- expressions.reverse) {
+      x match {
+        case u: ScalaUdf => {
+          
+          return u
+        }
+      }
+    }
     null
+    */
   }
 
   /**
@@ -204,12 +229,34 @@ object CachingIteratorGenerator {
 
         def hasNext() = {
           // IMPLEMENT ME
-          false
+          input.hasNext
         }
 
         def next() = {
-          // IMPLEMENT ME
-          null
+          if (input.hasNext) {
+            val row: Row = input.next()
+            val preUdf: Row = preUdfProjection.apply(row)
+
+            val cacheKey: Row = cacheKeyProjection.apply(row)
+            val udfRes: Row = {
+              if (cache.containsKey(cacheKey)) {
+                cache.get(cacheKey)
+              } else {
+                val res: Row = udfProject.apply(row)
+                cache.put(cacheKey, res)
+                res
+              }
+            }
+            // Note: In the example test case (field value +1), caching udf vs not creates 92ms vs 94ms difference; 
+            //       hopefully it makes a larger difference when udf execution is a bottleneck
+            // val udfRes: Row = udfProject.apply(row)
+            val postUdf: Row = postUdfProjection.apply(row)
+
+            // Note: ++ (seq append seq) vs :+ (seq apppend item)
+            Row.fromSeq(preUdf ++ udfRes ++ postUdf)
+          } else {
+            null
+          }
         }
       }
     }
