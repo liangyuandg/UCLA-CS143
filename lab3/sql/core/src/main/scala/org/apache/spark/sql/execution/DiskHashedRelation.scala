@@ -219,11 +219,13 @@ private[sql] object DiskHashedRelation {
                 keyGenerator: Projection,
                 size: Int = 64,
                 blockSize: Int = 64000) = {
+
     var diskPartitionArray: Array[DiskPartition] = new Array[DiskPartition](size)
     for (i <- 0 until diskPartitionArray.length) {
       // we initialize all of them, even if some may end up with no rows
       diskPartitionArray(i) = new DiskPartition("temp" + Integer.toString(i), blockSize)
     }
+
     while (input.hasNext) {
       val row: Row = input.next()
       val hashedKey: Int = keyGenerator.apply(row).hashCode() % size

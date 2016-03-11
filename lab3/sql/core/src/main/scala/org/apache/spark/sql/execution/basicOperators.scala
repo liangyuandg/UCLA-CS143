@@ -105,6 +105,7 @@ case class PartitionProject(projectList: Seq[Expression], child: SparkPlan) exte
       // Note: here we use the default number of partitions and default blockSize
       val diskPartitionIterator = DiskHashedRelation(input, keyGenerator).getIterator()
       var diskPartition: DiskPartition = null
+      var cacheGenerator: (Iterator[Row] => Iterator[Row]) = null
 
       def hasNext() = {
         if (currentIterator == null) {
@@ -137,7 +138,7 @@ case class PartitionProject(projectList: Seq[Expression], child: SparkPlan) exte
         while (diskPartitionIterator.hasNext) {
           diskPartition = diskPartitionIterator.next()
           // Note: we should regenerate the cacheGenerator each time we fetch a new partition, in case the HashMap inside cacheGenerator won't fit in memory
-          val cacheGenerator: (Iterator[Row] => Iterator[Row]) = CS143Utils.generateCachingIterator(projectList, child.output)
+          cacheGenerator = CS143Utils.generateCachingIterator(projectList, child.output)
           currentIterator = cacheGenerator(diskPartition.getData())
           if (currentIterator.hasNext) {
             return true
