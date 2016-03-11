@@ -97,18 +97,33 @@ case class PartitionProject(projectList: Seq[Expression], child: SparkPlan) exte
   def generateIterator(input: Iterator[Row]): Iterator[Row] = {
     // This is the key generator for the course-grained external hashing.
     val keyGenerator = CS143Utils.getNewProjection(projectList, child.output)
-
-    // IMPLEMENT ME
-
+    
+    // This essentially follows the DiskPartition.getData pattern
     new Iterator[Row] {
+      var currentIterator: Iterator[Row] = null
+
+      // Note: here we use the default number of partitions and default blockSize
+      val diskPartitionIterator = DiskHashedRelation(input, keyGenerator).getIterator()
+      var diskPartition: DiskPartition = null
+
       def hasNext() = {
-        // IMPLEMENT ME
-        false
+        if (currentIterator == null) {
+          fetchNextPartition()
+        } else {
+          if (currentIterator.hasNext) {
+            true
+          } else {
+            fetchNextPartition()
+          }
+        }
       }
 
       def next() = {
-        // IMPLEMENT ME
-        null
+        if (hasNext) {
+          currentIterator.next()
+        } else {
+          null
+        }
       }
 
       /**
@@ -117,8 +132,17 @@ case class PartitionProject(projectList: Seq[Expression], child: SparkPlan) exte
        *
        * @return
        */
-      private def fetchNextPartition(): Boolean  = {
-        // IMPLEMENT ME
+      private def fetchNextPartition(): Boolean = {
+        // Note: even if there's a next partition, doesn't mean that we'll data on it
+        while (diskPartitionIterator.hasNext) {
+          diskPartition = diskPartitionIterator.next()
+          // Note: we should regenerate the cacheGenerator each time we fetch a new partition, in case the HashMap inside cacheGenerator won't fit in memory
+          val cacheGenerator: (Iterator[Row] => Iterator[Row]) = CS143Utils.generateCachingIterator(projectList, child.output)
+          currentIterator = cacheGenerator(diskPartition.getData())
+          if (currentIterator.hasNext) {
+            return true
+          }
+        }
         false
       }
     }

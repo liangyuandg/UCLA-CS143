@@ -143,7 +143,8 @@ private[sql] class DiskPartition (
           true
         } else {
           // NOTE: here we avoid calling fetchNextChunk, as we don't want to overwrite the byteArray
-          // Knowing if chunkSizeIterator hasNext is enough for knowing if there are more rows.
+          // Calling fetchNextChunk() once in either hasNext, or next should be fine;
+          // For here, knowing if chunkSizeIterator hasNext is enough for knowing if there are more rows.
           chunkSizeIterator.hasNext
         }
       }
@@ -220,6 +221,7 @@ private[sql] object DiskHashedRelation {
                 blockSize: Int = 64000) = {
     var diskPartitionArray: Array[DiskPartition] = new Array[DiskPartition](size)
     for (i <- 0 until diskPartitionArray.length) {
+      // we initialize all of them, even if some may end up with no rows
       diskPartitionArray(i) = new DiskPartition("temp" + Integer.toString(i), blockSize)
     }
     while (input.hasNext) {
